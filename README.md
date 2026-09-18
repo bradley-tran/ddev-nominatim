@@ -23,7 +23,7 @@ ddev restart
 ```
 
 > [!NOTE]
-> On the first start, Nominatim downloads and imports the OpenStreetMap extract. Even for Monaco (~2.5 MB), this initial import may take 1–2 minutes. You can follow the progress using `ddev logs -s nominatim -f`.
+> Nominatim import can take a really long time, so on the first start, Nominatim downloads and imports the OpenStreetMap extract in the background without blocking `ddev start` or other services. You can follow the import progress using `ddev logs -s nominatim -f`. Once import completes, the API endpoints will automatically become responsive.
 
 After installation, make sure to commit the `.ddev` directory to version control.
 
@@ -96,11 +96,7 @@ If you change `NOMINATIM_PBF_URL` or want to re-import data from scratch:
    ```bash
    ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-url="https://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf"
    ```
-4. For larger datasets, increase DDEV's startup timeout:
-   ```bash
-   ddev config --default-container-timeout=600
-   ```
-5. Start DDEV to trigger the new import:
+4. Start DDEV (starts immediately; Nominatim imports in the background):
    ```bash
    ddev start
    ```

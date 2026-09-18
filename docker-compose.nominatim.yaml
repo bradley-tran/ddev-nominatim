@@ -25,12 +25,6 @@ services:
       - ".:/mnt/ddev_config"
       - "ddev-global-cache:/mnt/ddev-global-cache"
       - "nominatim-data:/var/lib/postgresql/16/main"
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/status"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
     x-ddev:
       describe-info: "Nominatim Geocoding API"
 

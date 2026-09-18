@@ -44,10 +44,10 @@ health_checks() {
   assert_success
   assert_output --partial "nominatim"
 
-  # Wait for Nominatim to become healthy if still importing
+  # Wait for Nominatim to become ready if still importing
   echo "# Waiting for Nominatim status endpoint to return OK..." >&3
   count=0
-  while [ $count -lt 30 ]; do
+  while [ $count -lt 90 ]; do
     if ddev exec -s nominatim curl -sf http://localhost:8080/status >/dev/null 2>&1; then
       break
     fi

@@ -10,7 +10,6 @@ pre_install_actions:
     # Create default .env.nominatim if it doesn't exist
     if [ ! -f .ddev/.env.nominatim ]; then
       cat > .ddev/.env.nominatim << 'ENVEOF'
-    #ddev-generated
     # Nominatim configuration for DDEV
     # See https://github.com/bradley-tran/ddev-nominatim for documentation
     #
@@ -39,7 +38,7 @@ post_install_actions:
     echo "Then start or restart DDEV:"
     echo "  ddev restart"
     echo ""
-    echo "Note: The initial start will import OSM data, which may take a couple of minutes."
+    echo "Note: The initial start will import OSM data in the background without blocking."
     echo "You can monitor import progress with:"
     echo "  ddev logs -s nominatim -f"
     echo ""
