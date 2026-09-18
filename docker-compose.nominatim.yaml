@@ -1,0 +1,38 @@
+#ddev-generated
+services:
+  nominatim:
+    container_name: ddev-${DDEV_SITENAME}-nominatim
+    image: ${NOMINATIM_DOCKER_IMAGE:-mediagis/nominatim:5.3}
+    restart: "no"
+    # These labels ensure this service is discoverable by DDEV.
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    expose:
+      - "8080"
+    environment:
+      - VIRTUAL_HOST=${DDEV_HOSTNAME}
+      - HTTP_EXPOSE=${NOMINATIM_HTTP_PORT:-8980}:8080
+      - HTTPS_EXPOSE=${NOMINATIM_HTTPS_PORT:-8943}:8080
+      - PBF_URL=${NOMINATIM_PBF_URL:-https://download.geofabrik.de/europe/monaco-latest.osm.pbf}
+      - PBF_PATH=${NOMINATIM_PBF_PATH:-}
+      - REPLICATION_URL=${NOMINATIM_REPLICATION_URL:-}
+      - IMPORT_STYLE=${NOMINATIM_IMPORT_STYLE:-full}
+      - NOMINATIM_PASSWORD=${NOMINATIM_PASSWORD:-nominatim}
+      - THREADS=${NOMINATIM_THREADS:-2}
+      - IMPORT_WIKIPEDIA=${NOMINATIM_IMPORT_WIKIPEDIA:-false}
+    volumes:
+      - ".:/mnt/ddev_config"
+      - "ddev-global-cache:/mnt/ddev-global-cache"
+      - "nominatim-data:/var/lib/postgresql/16/main"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    x-ddev:
+      describe-info: "Nominatim Geocoding API"
+
+volumes:
+  nominatim-data:

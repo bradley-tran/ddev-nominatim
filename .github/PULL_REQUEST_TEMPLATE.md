@@ -17,7 +17,7 @@
 <!-- If this PR changes logic, consider adding additional steps or context to the instructions below. -->
 
 ```bash
-ddev add-on get ddev/ddev-addon-template --pr REPLACE_ME_WITH_THIS_PR_NUMBER
+ddev add-on get bradley-tran/ddev-nominatim --pr REPLACE_ME_WITH_THIS_PR_NUMBER
 ddev restart
 ```
 

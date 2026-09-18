@@ -16,7 +16,7 @@ setup() {
   set -eu -o pipefail
 
   # Override this variable for your add-on:
-  export GITHUB_REPO=ddev/ddev-addon-template
+  export GITHUB_REPO=bradley-tran/ddev-nominatim
 
   TEST_BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
   export BATS_LIB_PATH="${BATS_LIB_PATH}:${TEST_BREW_PREFIX}/lib:/usr/lib/bats"
@@ -32,24 +32,53 @@ setup() {
   export DDEV_NO_INSTRUMENTATION=true
   ddev delete -Oy "${PROJNAME}" >/dev/null 2>&1 || true
   cd "${TESTDIR}"
-  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site
+  run ddev config --project-name="${PROJNAME}" --project-tld=ddev.site --default-container-timeout=300
   assert_success
   run ddev start -y
   assert_success
 }
 
 health_checks() {
-  # Do something useful here that verifies the add-on
-
-  # You can check for specific information in headers:
-  # run curl -sfI https://${PROJNAME}.ddev.site
-  # assert_output --partial "HTTP/2 200"
-  # assert_output --partial "test_header"
-
-  # Or check if some command gives expected output:
-  DDEV_DEBUG=true run ddev launch
+  # Verify container is running and listed by DDEV
+  run ddev describe
   assert_success
-  assert_output --partial "FULLURL https://${PROJNAME}.ddev.site"
+  assert_output --partial "nominatim"
+
+  # Wait for Nominatim to become healthy if still importing
+  echo "# Waiting for Nominatim status endpoint to return OK..." >&3
+  count=0
+  while [ $count -lt 30 ]; do
+    if ddev exec -s nominatim curl -sf http://localhost:8080/status >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+    count=$((count + 1))
+  done
+
+  # Verify the /status endpoint returns OK from inside the container
+  run ddev exec -s nominatim curl -sf http://localhost:8080/status
+  assert_success
+  assert_output --partial "OK"
+
+  # Verify web container can reach Nominatim internally
+  run ddev exec curl -sf http://nominatim:8080/status
+  assert_success
+  assert_output --partial "OK"
+
+  # Query the search API for Monaco data from web container
+  run ddev exec curl -sf "http://nominatim:8080/search?q=avenue+pasteur&format=json"
+  assert_success
+  assert_output --partial "Pasteur"
+
+  # Query the status endpoint via host/DDEV router
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8980:127.0.0.1" "http://${PROJNAME}.ddev.site:8980/status"
+  assert_success
+  assert_output --partial "OK"
+
+  # Query the search API via host/DDEV router
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8980:127.0.0.1" "http://${PROJNAME}.ddev.site:8980/search?q=avenue+pasteur&format=json"
+  assert_success
+  assert_output --partial "Pasteur"
 }
 
 teardown() {

@@ -1,110 +1,116 @@
 [![add-on registry](https://img.shields.io/badge/DDEV-Add--on_Registry-blue)](https://addons.ddev.com)
-[![tests](https://github.com/ddev/ddev-addon-template/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ddev/ddev-addon-template/actions/workflows/tests.yml?query=branch%3Amain)
-[![last commit](https://img.shields.io/github/last-commit/ddev/ddev-addon-template)](https://github.com/ddev/ddev-addon-template/commits)
-[![release](https://img.shields.io/github/v/release/ddev/ddev-addon-template)](https://github.com/ddev/ddev-addon-template/releases/latest)
+[![tests](https://github.com/bradley-tran/ddev-nominatim/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/bradley-tran/ddev-nominatim/actions/workflows/tests.yml?query=branch%3Amain)
+[![last commit](https://img.shields.io/github/last-commit/bradley-tran/ddev-nominatim)](https://github.com/bradley-tran/ddev-nominatim/commits)
+[![release](https://img.shields.io/github/v/release/bradley-tran/ddev-nominatim)](https://github.com/bradley-tran/ddev-nominatim/releases/latest)
 
-# DDEV Add-on Template <!-- omit in toc -->
+# DDEV Nominatim
 
-* [What is DDEV Add-on Template?](#what-is-ddev-add-on-template)
-* [Update Checker](#update-checker)
-* [TL;DR](#tldr)
-* [Components of the repository](#components-of-the-repository)
-* [Getting started](#getting-started)
-* [How to debug in Github Actions](#how-to-debug-in-github-actions)
-* [Resources](#resources)
-* [Credits](#credits)
+## Overview
 
-## What is DDEV Add-on Template?
+This add-on integrates [Nominatim](https://nominatim.org/) (OpenStreetMap search and reverse geocoding engine) into your [DDEV](https://ddev.com/) project using the [`mediagis/nominatim`](https://hub.docker.com/r/mediagis/nominatim) Docker image.
 
-This repository is a template for providing [DDEV](https://docs.ddev.com) add-ons and services.
+By default, the add-on downloads and imports the Monaco extract from Geofabrik for quick testing and development. You can easily configure it to import any regional extract or custom OSM data.
 
-In DDEV, add-ons can be installed from the command line using the `ddev add-on get` command, for example, `ddev add-on get ddev/ddev-redis` or `ddev add-on get ddev/ddev-solr`.
+## Requirements
 
-This repository is a quick way to get started. You can create a new repo from this one by clicking <kbd>Use this template &#8964;</kbd> button in the top right corner of the page.
+- DDEV v1.24.10 or higher
 
-![template button](images/template-button.png)
-
-## Update Checker
-
-Run the update checker script periodically in your add-on to verify it is up to date:
+## Installation
 
 ```bash
-curl -fsSL https://ddev.com/s/addon-update-checker.sh | bash
+ddev add-on get bradley-tran/ddev-nominatim
+ddev restart
 ```
 
-## TL;DR
-
-1. Click the green <kbd>Use this template &#8964;</kbd> button (top right) > `Create a new repository`.
-2. Name your repository using the `ddev-` prefix (e.g. `ddev-foobar`).
-3. Add a meaningful description with relevant keywords for discoverability.
-4. Click <kbd>Create repository</kbd> and wait for the automated "First time setup" commit.
-
 > [!NOTE]
-> Automated updates to the `README.md` happen in a minute or so after creation.
+> On the first start, Nominatim downloads and imports the OpenStreetMap extract. Even for Monaco (~2.5 MB), this initial import may take 1–2 minutes. You can follow the progress using `ddev logs -s nominatim -f`.
 
-5. Clone your repository locally (use the <kbd><> Code &#8964;</kbd> button for the URL).
-6. Prepare your add-on files and tests, see [Getting started](#getting-started) for details.
-7. Create a new PR for review and discussion (avoid committing directly to `main`, as that bypasses the collaborative process).
-8. Merge or squash your PR into `main` (squash is preferred for a cleaner commit history).
-9. Create a new [release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
-10. When ready to share, make your add-on discoverable by adding the `ddev-get` [topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics).
-11. Check out the [DDEV Add-on Maintenance Guide](https://ddev.com/blog/ddev-add-on-maintenance-guide/).
+After installation, make sure to commit the `.ddev` directory to version control.
 
-## Components of the repository
+## Usage
 
-* The fundamental contents of the add-on service or other component. For example, in this template there is a [docker-compose.addon-template.yaml](docker-compose.addon-template.yaml) file.
-* An [install.yaml](install.yaml) file that describes how to install the service or other component.
-* A test suite in [test.bats](tests/test.bats) that makes sure the service continues to work as expected.
-* [Github actions setup](.github/workflows/tests.yml) so that the tests run automatically when you push to the repository.
+### Accessing Nominatim
 
-## Getting started
+- **External (Host Browser / Tools):**
+  - HTTP: `http://<projectname>.ddev.site:8980`
+  - HTTPS: `https://<projectname>.ddev.site:8943`
+- **Internal (From `web` container or other services):**
+  - `http://nominatim:8080`
 
-1. Choose a good descriptive name for your add-on. It should probably start with "ddev-" and include the basic service or functionality. If it's particular to a specific CMS, perhaps `ddev-<CMS>-servicename`.
-2. Create the new template repository by using the template button.
-3. Add the files that need to be added to a DDEV project to the repository. If your add-on does not add a new service, remove `docker-compose.<addon-name>.yaml` file.
-4. Update the `install.yaml` to give the necessary instructions for installing the add-on:
+### API Endpoints
 
-   * The fundamental line is the `project_files` directive, a list of files to be copied from this repo into the project `.ddev` directory.
-   * You can optionally add files to the `global_files` directive as well, which will cause files to be placed in the global `~/.ddev` directory.
-   * Make sure to have the `ddev_version_constraint` directive, to keep the add-on users up to date.
-   * Finally, `pre_install_actions` and `post_install_actions` are supported. These can use the host-side environment variables documented [in DDEV docs](https://docs.ddev.com/en/stable/users/extend/custom-commands/#environment-variables-provided).
+| Endpoint | Description | Example |
+| -------- | ----------- | ------- |
+| `/status` | Service and database health | `http://<projectname>.ddev.site:8980/status` |
+| `/search` | Search by address / query | `http://<projectname>.ddev.site:8980/search?q=avenue+pasteur&format=json` |
+| `/reverse` | Reverse geocoding (lat/lon) | `http://<projectname>.ddev.site:8980/reverse?lat=43.7384&lon=7.4246&format=json` |
 
-5. Update `tests/test.bats` to provide a reasonable test for your repository:
+### Useful Commands
 
-   * In most cases, you only need to modify the `health_checks()` function and update the `GITHUB_REPO` variable to match your repository.
-   * Tests will run automatically on every push to the repository, and periodically each night.
-   * Tests run on both AMD64 and ARM64 runners by default. You can add or remove runners in `matrix.os` in [.github/workflows/tests.yml](.github/workflows/tests.yml), see [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
-   * Please make sure to address test failures when they happen. Others will be depending on you.
-   * Bats is a testing framework that just uses Bash. To run a Bats test locally, you have to install [bats-core](https://bats-core.readthedocs.io/en/stable/installation.html) and its [libraries](https://github.com/ztombol/bats-docs) first.
-   * Then you download your add-on, and finally run `bats ./tests/test.bats` within the root of the uncompressed directory.
-   * To learn more about Bats see the [documentation](https://bats-core.readthedocs.io/en/stable/).
-   * For complex test scenarios, you can use `tests/testdata/` directory to store test fixtures. See examples in:
-     * [ddev-cypress](https://github.com/ddev/ddev-cypress/tree/main/tests)
-     * [ddev-rabbitmq](https://github.com/ddev/ddev-rabbitmq/tree/main/tests)
-     * [ddev-typo3-solr](https://github.com/ddev/ddev-typo3-solr/tree/main/tests)
-     * [ddev-upsun](https://github.com/ddev/ddev-upsun/tree/main/tests)
+| Command | Description |
+| ------- | ----------- |
+| `ddev describe` | View service status and exposed ports |
+| `ddev logs -s nominatim` | View Nominatim container logs |
+| `ddev logs -s nominatim -f` | Follow live import and request logs |
 
-6. When everything is working, including the tests, you can push the repository to GitHub.
-7. Create a [release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) on GitHub.
-8. Test manually with `ddev add-on get <owner/repo>`.
-9. You can test PRs with `ddev add-on get https://github.com/<user>/<repo>/tarball/<branch>` or `https://github.com/<user>/<repo>/tarball/refs/pull/<pr-number>/head`.
-10. You can test add-ons locally without GitHub by downloading them, making changes and running `ddev add-on get /path/to/add-on-directory`.
-11. Update the [`README.md`](./README_ADDON.md) to describe the add-on, how to use it, and how to contribute. If there are any manual actions that have to be taken, please explain them. If it requires special configuration of the using project, please explain how to do those. Examples in [ddev/ddev-solr](https://github.com/ddev/ddev-solr), [ddev/ddev-memcached](https://github.com/ddev/ddev-memcached), and (advanced) [ddev-platformsh](https://github.com/ddev/ddev-platformsh).
-12. Add a clear short description to your repo, and add the `ddev-get` [topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics). It will immediately be added to the list provided by `ddev add-on list --all` and appear in the [DDEV Add-on Registry](https://addons.ddev.com/) within about 24 hours.
-13. Once it matures and you want it to become an officially maintained add-on (i.e., supported by the DDEV team), open an issue in the [DDEV issue queue](https://github.com/ddev/ddev/issues).
+## Configuration
 
-## How to debug in GitHub Actions
+Configuration is managed via `.ddev/.env.nominatim`. You can configure settings using `ddev dotenv set`:
 
-See [full instructions](./README_DEBUG.md).
+```bash
+# Example: Import Germany instead of Monaco
+ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-url="https://download.geofabrik.de/europe/germany-latest.osm.pbf"
+ddev restart
+```
 
-## Resources
+### Available Options
 
-* [DDEV Add-ons: Creating, maintaining, testing](https://www.youtube.com/watch?v=TmXqQe48iqE) (part of the [DDEV Contributor Live Training](https://ddev.com/blog/contributor-training))
-* [Advanced Add-On Techniques](https://ddev.com/blog/advanced-add-on-contributor-training/)
-* [DDEV Add-on Maintenance Guide](https://ddev.com/blog/ddev-add-on-maintenance-guide/)
-* [DDEV Documentation for Add-ons](https://docs.ddev.com/en/stable/users/extend/additional-services/)
-* [DDEV Add-on Registry](https://addons.ddev.com/)
+| Variable | Flag | Default | Description |
+| -------- | ---- | ------- | ----------- |
+| `NOMINATIM_DOCKER_IMAGE` | `--nominatim-docker-image` | `mediagis/nominatim:5.3` | Nominatim Docker image and tag |
+| `NOMINATIM_PBF_URL` | `--nominatim-pbf-url` | Monaco extract URL | URL of the `.osm.pbf` file to download and import |
+| `NOMINATIM_PBF_PATH` | `--nominatim-pbf-path` | _(empty)_ | Path to a local `.osm.pbf` file inside container (e.g. `/mnt/ddev_config/data.osm.pbf`) |
+| `NOMINATIM_IMPORT_STYLE` | `--nominatim-import-style` | `full` | Import detail level: `admin`, `street`, `address`, or `full` |
+| `NOMINATIM_PASSWORD` | `--nominatim-password` | `nominatim` | PostgreSQL password for nominatim user |
+| `NOMINATIM_THREADS` | `--nominatim-threads` | `2` | Number of threads used during import |
+| `NOMINATIM_REPLICATION_URL` | `--nominatim-replication-url` | _(empty)_ | Base URL for live updates from Geofabrik |
+| `NOMINATIM_IMPORT_WIKIPEDIA` | `--nominatim-import-wikipedia` | `false` | Import Wikipedia importance dumps for improved ranking |
+| `NOMINATIM_HTTP_PORT` | `--nominatim-http-port` | `8980` | Host HTTP port exposed via DDEV router |
+| `NOMINATIM_HTTPS_PORT` | `--nominatim-https-port` | `8943` | Host HTTPS port exposed via DDEV router |
+
+## Data Persistence & Changing Data Extracts
+
+The PostgreSQL database is persisted in a named Docker volume (`ddev-<projectname>-nominatim-data`).
+
+If you change `NOMINATIM_PBF_URL` or want to re-import data from scratch:
+
+1. Stop DDEV:
+   ```bash
+   ddev stop
+   ```
+2. Remove the existing database volume:
+   ```bash
+   docker volume rm ddev-${DDEV_SITENAME}-nominatim-data
+   ```
+3. Update your `.ddev/.env.nominatim` configuration:
+   ```bash
+   ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-url="https://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf"
+   ```
+4. For larger datasets, increase DDEV's startup timeout:
+   ```bash
+   ddev config --default-container-timeout=600
+   ```
+5. Start DDEV to trigger the new import:
+   ```bash
+   ddev start
+   ```
+
+## Hardware Considerations
+
+- **Small extracts (Monaco, Liechtenstein):** ~2 GB RAM, 10–20 GB disk, finishes in minutes.
+- **Medium extracts (countries like Germany, France):** 16–32 GB RAM, 50–100 GB fast NVMe disk, can take a few hours.
+- **Full Planet:** 64–128 GB+ RAM, 1 TB+ NVMe SSD, takes multiple days.
 
 ## Credits
 
-**Contributed and maintained by @CONTRIBUTOR**
+**Contributed and maintained by [@bradley-tran](https://github.com/bradley-tran)**
