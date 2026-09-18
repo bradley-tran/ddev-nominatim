@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+#ddev-generated
+## Description: Run Nominatim CLI commands inside the nominatim container
+## Usage: nominatim [flags] [args]
+## Example: "ddev nominatim status" or "ddev nominatim admin --check-database" or "ddev nominatim refresh --website"
+## ExecRaw: true
+
+cd "${PROJECT_DIR:-/nominatim}"
+
+if [ "$(id -u)" -eq 0 ]; then
+  sudo -E -u nominatim nominatim "$@"
+  status=$?
+else
+  nominatim "$@"
+  status=$?
+fi
+
+# Nominatim CLI catches SystemExit on --help/-h and returns 1 instead of 0.
+# Treat help invocations as successful if status was 1.
+if [ "$status" -eq 1 ]; then
+  if [ $# -eq 0 ]; then
+    exit 0
+  fi
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      exit 0
+    fi
+  done
+fi
+
+exit $status

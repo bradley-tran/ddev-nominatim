@@ -49,9 +49,31 @@ After installation, make sure to commit the `.ddev` directory to version control
 
 | Command | Description |
 | ------- | ----------- |
+| `ddev nominatim <cmd>` | Run Nominatim CLI commands inside the container |
 | `ddev describe` | View service status and exposed ports |
 | `ddev logs -s nominatim` | View Nominatim container logs |
 | `ddev logs -s nominatim -f` | Follow live import and request logs |
+
+### Nominatim CLI
+
+This add-on exposes the `nominatim` command to run CLI commands directly inside the Nominatim container:
+
+```bash
+# Check service and database status
+ddev nominatim status
+
+# Check database health and consistency
+ddev nominatim admin --check-database
+
+# Warm database cache
+ddev nominatim admin --warm
+
+# Show Nominatim version
+ddev nominatim --version
+
+# View all available CLI commands and help
+ddev nominatim --help
+```
 
 ## Configuration
 

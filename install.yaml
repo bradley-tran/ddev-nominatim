@@ -2,6 +2,7 @@ name: nominatim
 
 project_files:
   - docker-compose.nominatim.yaml
+  - commands/nominatim/nominatim
 
 ddev_version_constraint: '>= v1.24.10'
 

@@ -79,6 +79,15 @@ health_checks() {
   run curl -sf --resolve "${PROJNAME}.ddev.site:8980:127.0.0.1" "http://${PROJNAME}.ddev.site:8980/search?q=avenue+pasteur&format=json"
   assert_success
   assert_output --partial "Pasteur"
+
+  # Verify custom nominatim command works
+  run ddev nominatim --version
+  assert_success
+  assert_output --partial "Nominatim version"
+
+  run ddev nominatim status
+  assert_success
+  assert_output --partial "OK"
 }
 
 teardown() {
