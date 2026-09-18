@@ -58,8 +58,12 @@ After installation, make sure to commit the `.ddev` directory to version control
 Configuration is managed via `.ddev/.env.nominatim`. You can configure settings using `ddev dotenv set`:
 
 ```bash
-# Example: Import Germany instead of Monaco
+# Example 1: Import Germany from URL instead of Monaco
 ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-url="https://download.geofabrik.de/europe/germany-latest.osm.pbf"
+ddev restart
+
+# Example 2: Import from a local .osm.pbf file (placed in project root or .ddev/)
+ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-path="data.osm.pbf"
 ddev restart
 ```
 
@@ -69,7 +73,7 @@ ddev restart
 | -------- | ---- | ------- | ----------- |
 | `NOMINATIM_DOCKER_IMAGE` | `--nominatim-docker-image` | `mediagis/nominatim:5.3` | Nominatim Docker image and tag |
 | `NOMINATIM_PBF_URL` | `--nominatim-pbf-url` | Monaco extract URL | URL of the `.osm.pbf` file to download and import |
-| `NOMINATIM_PBF_PATH` | `--nominatim-pbf-path` | _(empty)_ | Path to a local `.osm.pbf` file inside container (e.g. `/mnt/ddev_config/data.osm.pbf`) |
+| `NOMINATIM_PBF_PATH` | `--nominatim-pbf-path` | _(empty)_ | Path to a local `.osm.pbf` file (e.g. `data.osm.pbf`, `/mnt/ddev_config/data.osm.pbf`, or `/var/www/html/data.osm.pbf`) |
 | `NOMINATIM_IMPORT_STYLE` | `--nominatim-import-style` | `full` | Import detail level: `admin`, `street`, `address`, or `full` |
 | `NOMINATIM_PASSWORD` | `--nominatim-password` | `nominatim` | PostgreSQL password for nominatim user |
 | `NOMINATIM_THREADS` | `--nominatim-threads` | `2` | Number of threads used during import |
@@ -82,7 +86,7 @@ ddev restart
 
 The PostgreSQL database is persisted in a named Docker volume (`ddev-<projectname>-nominatim-data`).
 
-If you change `NOMINATIM_PBF_URL` or want to re-import data from scratch:
+If you change `NOMINATIM_PBF_URL` / `NOMINATIM_PBF_PATH` or want to re-import data from scratch:
 
 1. Stop DDEV:
    ```bash
@@ -94,7 +98,10 @@ If you change `NOMINATIM_PBF_URL` or want to re-import data from scratch:
    ```
 3. Update your `.ddev/.env.nominatim` configuration:
    ```bash
+   # Using a URL:
    ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-url="https://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf"
+   # Or using a local file:
+   ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-path="data.osm.pbf"
    ```
 4. Start DDEV (starts immediately; Nominatim imports in the background):
    ```bash

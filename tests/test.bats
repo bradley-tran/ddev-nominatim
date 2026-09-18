@@ -103,6 +103,20 @@ teardown() {
   health_checks
 }
 
+@test "install from directory with NOMINATIM_PBF_PATH" {
+  set -eu -o pipefail
+  echo "# ddev add-on get ${DIR} with project ${PROJNAME} in $(pwd)" >&3
+  run ddev add-on get "${DIR}"
+  assert_success
+  run curl -sfL "https://download.geofabrik.de/europe/monaco-latest.osm.pbf" -o monaco.osm.pbf
+  assert_success
+  run ddev dotenv set .ddev/.env.nominatim --nominatim-pbf-path="monaco.osm.pbf"
+  assert_success
+  run ddev restart -y
+  assert_success
+  health_checks
+}
+
 # bats test_tags=release
 @test "install from release" {
   set -eu -o pipefail
@@ -113,3 +127,4 @@ teardown() {
   assert_success
   health_checks
 }
+

@@ -11,6 +11,9 @@ services:
     expose:
       - "8080"
     environment:
+      - DDEV_APPROOT=${DDEV_APPROOT}
+      - DDEV_UID=${DDEV_UID:-1000}
+      - DDEV_GID=${DDEV_GID:-1000}
       - VIRTUAL_HOST=${DDEV_HOSTNAME}
       - HTTP_EXPOSE=${NOMINATIM_HTTP_PORT:-8980}:8080
       - HTTPS_EXPOSE=${NOMINATIM_HTTPS_PORT:-8943}:8080
@@ -23,8 +26,43 @@ services:
       - IMPORT_WIKIPEDIA=${NOMINATIM_IMPORT_WIKIPEDIA:-false}
     volumes:
       - ".:/mnt/ddev_config"
+      - "../:/var/www/html:ro"
       - "ddev-global-cache:/mnt/ddev-global-cache"
       - "nominatim-data:/var/lib/postgresql/16/main"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        if ! id nominatim >/dev/null 2>&1; then
+          userdel -r ubuntu 2>/dev/null || userdel ubuntu 2>/dev/null || true
+          groupdel ubuntu 2>/dev/null || true
+          groupadd -g $${DDEV_GID:-1000} nominatim 2>/dev/null || true
+          useradd -u $${DDEV_UID:-1000} -g $${DDEV_GID:-1000} -m -p "$${NOMINATIM_PASSWORD:-nominatim}" nominatim 2>/dev/null || useradd -m -p "$${NOMINATIM_PASSWORD:-nominatim}" nominatim
+        fi
+        if [ -n "$$PBF_PATH" ]; then
+          unset PBF_URL
+          if [ ! -f "$$PBF_PATH" ]; then
+            if [ -f "/var/www/html/$$PBF_PATH" ]; then
+              PBF_PATH="/var/www/html/$$PBF_PATH"
+            elif [ -f "/mnt/ddev_config/$$PBF_PATH" ]; then
+              PBF_PATH="/mnt/ddev_config/$$PBF_PATH"
+            elif [ -n "$$DDEV_APPROOT" ] && [[ "$$PBF_PATH" == "$$DDEV_APPROOT"* ]]; then
+              REL_PATH="$${PBF_PATH#$$DDEV_APPROOT/}"
+              if [ -f "/var/www/html/$$REL_PATH" ]; then
+                PBF_PATH="/var/www/html/$$REL_PATH"
+              elif [ -f "/mnt/ddev_config/$$REL_PATH" ]; then
+                PBF_PATH="/mnt/ddev_config/$$REL_PATH"
+              fi
+            fi
+          fi
+          if [ ! -f "$$PBF_PATH" ]; then
+            echo "ERROR: OSM PBF file not found at: $$PBF_PATH" >&2
+            echo "Please ensure the file exists in the project root or .ddev directory" >&2
+            exit 1
+          fi
+          export PBF_PATH
+        fi
+        exec /app/start.sh
     x-ddev:
       describe-info: "Nominatim Geocoding API"
 
