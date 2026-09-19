@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+## #ddev-generated: If you want to edit and own this file, remove this line.
+## Description: Launch a browser with Nominatim UI
+## Usage: nominatim-ui [flags]
+## Example: "ddev nominatim-ui" or "ddev nominatim-ui -s"
+
+DDEV_NOMINATIM_UI_PORT=${NOMINATIM_UI_HTTP_PORT:-8765}
+DDEV_NOMINATIM_UI_HTTPS_PORT=${NOMINATIM_UI_HTTPS_PORT:-8744}
+
+for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+        echo "Launch a browser with Nominatim UI"
+        echo "Usage: ddev nominatim-ui [flags]"
+        echo "Examples: \"ddev nominatim-ui\" or \"ddev nominatim-ui -s\""
+        exit 0
+    fi
+done
+
+if [ "${DDEV_PRIMARY_URL%://*}" = "http" ] || [ -n "${GITPOD_WORKSPACE_ID:-}" ] || [ "${CODESPACES:-}" = "true" ]; then
+    if [ "${OSTYPE:-}" = "linux-gnu" ] && [ -n "${GITPOD_WORKSPACE_ID:-}" ] && [ -z "${DDEV_DEBUG:-}" ]; then
+        xdg-open "$(DDEV_DEBUG=true ddev launch :$DDEV_NOMINATIM_UI_PORT "$@" | grep "FULLURL" | awk '{print $2}')"
+    else
+        ddev launch :$DDEV_NOMINATIM_UI_PORT "$@"
+    fi
+else
+    ddev launch :$DDEV_NOMINATIM_UI_HTTPS_PORT "$@"
+fi

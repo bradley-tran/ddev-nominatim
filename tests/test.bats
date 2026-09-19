@@ -43,6 +43,7 @@ health_checks() {
   run ddev describe
   assert_success
   assert_output --partial "nominatim"
+  assert_output --partial "nominatim-ui"
 
   # Wait for Nominatim to become ready if still importing
   echo "# Waiting for Nominatim status endpoint to return OK..." >&3
@@ -80,6 +81,47 @@ health_checks() {
   assert_success
   assert_output --partial "Pasteur"
 
+  # Wait for Nominatim UI to become ready
+  echo "# Waiting for Nominatim UI to become ready..." >&3
+  count=0
+  while [ $count -lt 30 ]; do
+    if ddev exec -s nominatim-ui wget -qO- http://127.0.0.1/ >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+    count=$((count + 1))
+  done
+
+  # Wait for DDEV router to route Nominatim UI
+  count=0
+  while [ $count -lt 30 ]; do
+    if curl -sf --resolve "${PROJNAME}.ddev.site:8765:127.0.0.1" "http://${PROJNAME}.ddev.site:8765/" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+    count=$((count + 1))
+  done
+
+  # Verify Nominatim UI web interface responds via host/DDEV router
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8765:127.0.0.1" "http://${PROJNAME}.ddev.site:8765/"
+  assert_success
+  assert_output --partial "search.html"
+
+  # Verify Nominatim UI search.html page
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8765:127.0.0.1" "http://${PROJNAME}.ddev.site:8765/search.html"
+  assert_success
+  assert_output --partial "Nominatim"
+
+  # Verify Nominatim UI reverse proxies /api/status to Nominatim API
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8765:127.0.0.1" "http://${PROJNAME}.ddev.site:8765/api/status"
+  assert_success
+  assert_output --partial "OK"
+
+  # Verify Nominatim UI reverse proxies /api/search to Nominatim API
+  run curl -sf --resolve "${PROJNAME}.ddev.site:8765:127.0.0.1" "http://${PROJNAME}.ddev.site:8765/api/search?q=avenue+pasteur&format=json"
+  assert_success
+  assert_output --partial "Pasteur"
+
   # Verify custom nominatim command works
   run ddev nominatim --version
   assert_success
@@ -88,6 +130,11 @@ health_checks() {
   run ddev nominatim status
   assert_success
   assert_output --partial "OK"
+
+  # Verify custom nominatim-ui command help works
+  run ddev nominatim-ui --help
+  assert_success
+  assert_output --partial "Launch a browser with Nominatim UI"
 }
 
 teardown() {

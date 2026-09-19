@@ -2,7 +2,9 @@ name: nominatim
 
 project_files:
   - docker-compose.nominatim.yaml
+  - docker-compose.nominatim-ui.yaml
   - commands/nominatim/nominatim
+  - commands/host/nominatim-ui
 
 ddev_version_constraint: '>= v1.24.10'
 
@@ -25,6 +27,19 @@ pre_install_actions:
     # NOMINATIM_THREADS=2
     # NOMINATIM_HTTP_PORT=8980
     # NOMINATIM_HTTPS_PORT=8943
+    # NOMINATIM_UI_HTTP_PORT=8765
+    # NOMINATIM_UI_HTTPS_PORT=8744
+    # NOMINATIM_UI_VERSION="3.12.0"
+    # NOMINATIM_UI_PAGE_TITLE="Nominatim"
+    # NOMINATIM_UI_DOCKER_IMAGE="nginx:alpine"
+    ENVEOF
+    elif ! grep -q "NOMINATIM_UI_" .ddev/.env.nominatim; then
+      cat >> .ddev/.env.nominatim << 'ENVEOF'
+    # NOMINATIM_UI_HTTP_PORT=8765
+    # NOMINATIM_UI_HTTPS_PORT=8744
+    # NOMINATIM_UI_VERSION="3.12.0"
+    # NOMINATIM_UI_PAGE_TITLE="Nominatim"
+    # NOMINATIM_UI_DOCKER_IMAGE="nginx:alpine"
     ENVEOF
     fi
 
@@ -43,4 +58,8 @@ post_install_actions:
     echo "Note: The initial start will import OSM data in the background without blocking."
     echo "You can monitor import progress with:"
     echo "  ddev logs -s nominatim -f"
+    echo ""
+    echo "Once ready, access:"
+    echo "  - API:    https://<projectname>.ddev.site:8943"
+    echo "  - Web UI: https://<projectname>.ddev.site:8744 (or run 'ddev nominatim-ui')"
     echo ""

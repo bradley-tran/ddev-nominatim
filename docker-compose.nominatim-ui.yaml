@@ -1,0 +1,89 @@
+#ddev-generated
+services:
+  nominatim-ui:
+    container_name: ddev-${DDEV_SITENAME}-nominatim-ui
+    image: ${NOMINATIM_UI_DOCKER_IMAGE:-nginx:alpine}
+    restart: "no"
+    # These labels ensure this service is discoverable by DDEV.
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: ${DDEV_APPROOT}
+    expose:
+      - "80"
+    environment:
+      - DDEV_APPROOT=${DDEV_APPROOT}
+      - VIRTUAL_HOST=${DDEV_HOSTNAME}
+      - HTTP_EXPOSE=${NOMINATIM_UI_HTTP_PORT:-8765}:80
+      - HTTPS_EXPOSE=${NOMINATIM_UI_HTTPS_PORT:-8744}:80
+      - NOMINATIM_UI_VERSION=${NOMINATIM_UI_VERSION:-3.12.0}
+      - NOMINATIM_UI_PAGE_TITLE=${NOMINATIM_UI_PAGE_TITLE:-Nominatim}
+      - NOMINATIM_UI_API_ENDPOINT=${NOMINATIM_UI_API_ENDPOINT:-/api/}
+    volumes:
+      - ".:/mnt/ddev_config"
+      - "nominatim-ui-data:/usr/share/nginx/html"
+    depends_on:
+      - nominatim
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        TARGET_DIR="/usr/share/nginx/html"
+        VERSION_FILE="$$TARGET_DIR/.version"
+        CURRENT_VERSION=$$(cat "$$VERSION_FILE" 2>/dev/null || true)
+        DESIRED_VERSION="$${NOMINATIM_UI_VERSION:-3.12.0}"
+
+        if [ ! -f "$$TARGET_DIR/index.html" ] || [ "$$CURRENT_VERSION" != "$$DESIRED_VERSION" ]; then
+          echo "Installing nominatim-ui v$$DESIRED_VERSION..."
+          rm -rf "$$TARGET_DIR"/*
+          wget -qO- "https://github.com/osm-search/nominatim-ui/releases/download/v$${DESIRED_VERSION}/nominatim-ui-$${DESIRED_VERSION}.tar.gz" | tar -xz -C "$$TARGET_DIR" --strip-components=2 "nominatim-ui-$${DESIRED_VERSION}/dist"
+          echo "$$DESIRED_VERSION" > "$$VERSION_FILE"
+        fi
+
+        # Configure theme config
+        if [ -f "/mnt/ddev_config/nominatim-ui/config.theme.js" ]; then
+          cp "/mnt/ddev_config/nominatim-ui/config.theme.js" "$$TARGET_DIR/theme/config.theme.js"
+        else
+          cat << THEMEOF > "$$TARGET_DIR/theme/config.theme.js"
+        Nominatim_Config.Nominatim_API_Endpoint = '$${NOMINATIM_UI_API_ENDPOINT:-/api/}';
+        Nominatim_Config.Page_Title = '$${NOMINATIM_UI_PAGE_TITLE:-Nominatim}';
+        THEMEOF
+        fi
+
+        # Configure Nginx
+        if [ -f "/mnt/ddev_config/nominatim-ui/nginx.conf" ]; then
+          cp "/mnt/ddev_config/nominatim-ui/nginx.conf" /etc/nginx/conf.d/default.conf
+        else
+          cat << 'NGINXEOF' > /etc/nginx/conf.d/default.conf
+        server {
+            listen 80;
+            listen [::]:80;
+            server_name _;
+            root /usr/share/nginx/html;
+            index index.html;
+
+            resolver 127.0.0.11 valid=30s ipv6=off;
+
+            location / {
+                try_files $$uri $$uri/ /index.html;
+            }
+
+            location /api/ {
+                set $$backend "http://nominatim:8080";
+                rewrite ^/api/(.*) /$$1 break;
+                proxy_pass $$backend;
+                proxy_set_header Host $$host;
+                proxy_set_header X-Real-IP $$remote_addr;
+                proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $$scheme;
+            }
+        }
+        NGINXEOF
+        fi
+
+        exec nginx -g "daemon off;"
+    x-ddev:
+      describe-info: "Nominatim Web UI"
+
+volumes:
+  nominatim-ui-data:
