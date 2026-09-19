@@ -19,6 +19,14 @@ on:
         required: false
         default: false
 
+  workflow_call:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: Enable remote debugging session
+        required: false
+        default: false
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -41,6 +49,6 @@ jobs:
         with:
           ddev_version: ${{ matrix.ddev_version }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          debug_enabled: ${{ github.event.inputs.debug_enabled }}
+          debug_enabled: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled || inputs.debug_enabled || false }}
           addon_repository: ${{ env.GITHUB_REPOSITORY }}
           addon_ref: ${{ env.GITHUB_REF }}
